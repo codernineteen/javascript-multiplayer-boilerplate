@@ -1,4 +1,7 @@
-interface KeyInput {
+import { SocketType } from "../../../App";
+import Character from "../Character";
+
+export interface KeyInput {
   Forward: boolean;
   Left: boolean;
   Backward: boolean;
@@ -9,7 +12,11 @@ interface KeyInput {
 
 export default class PlayerInput {
   public keys: KeyInput;
-  constructor() {
+  constructor(
+    public socket: SocketType,
+    public player: Character,
+    public userId: string
+  ) {
     this.keys = {
       Forward: false,
       Left: false,
@@ -64,6 +71,7 @@ export default class PlayerInput {
     switch (evt.code) {
       case "KeyW":
         this.keys.Forward = false;
+        this.StopTransformUpdate();
         break;
 
       case "KeyA":
@@ -72,6 +80,7 @@ export default class PlayerInput {
 
       case "KeyS":
         this.keys.Backward = false;
+        this.StopTransformUpdate();
         break;
 
       case "KeyD":
@@ -86,5 +95,17 @@ export default class PlayerInput {
         this.keys.Space = false;
         break;
     }
+  }
+
+  StopTransformUpdate() {
+    const playerPos = this.player.Mesh.position;
+    const playerQuat = this.player.Mesh.quaternion;
+    this.socket.emit("TransformUpdate", {
+      userId: this.userId,
+      pos: [playerPos.x, playerPos.y, playerPos.z],
+      quat: [playerQuat.x, playerQuat.y, playerQuat.z, playerQuat.w],
+      state: "idle",
+      input: this.keys,
+    });
   }
 }

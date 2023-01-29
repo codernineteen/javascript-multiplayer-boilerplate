@@ -1,7 +1,10 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import GLTFModels from "../models/GLTFModels";
-import PlayerController from "./controller/PlayerController";
+import LocalPlayerController from "./controller/LocalPlayerController";
+import NetworkPlayerController from "./controller/NetworkPlayerController";
+import { SocketType } from "../../App";
+import { KeyInput } from "./inputs/PlayerInput";
 
 interface AnimationObject {
   [animName: string]: {
@@ -15,14 +18,26 @@ export default class Character {
   private bones: any;
   private animMixer: THREE.AnimationMixer;
   private animations: AnimationObject;
-  private controller: PlayerController;
+  private controller: LocalPlayerController | NetworkPlayerController;
 
-  constructor() {
+  constructor(
+    public socket: SocketType,
+    public userId: string,
+    public isRemote: boolean,
+    public input?: KeyInput
+  ) {
     this.group = new THREE.Group();
     this.bones = {};
     this.animMixer = new THREE.AnimationMixer(this.group); // empty actions at this moment
     this.animations = {};
-    this.controller = new PlayerController(this); // give 'this' context to state machine
+    this.controller = isRemote
+      ? new NetworkPlayerController(
+          this,
+          this.socket,
+          this.userId,
+          this.input as KeyInput
+        )
+      : new LocalPlayerController(this, this.socket, this.userId); // give 'this' context to state machine
   }
 
   /**

@@ -2,27 +2,32 @@ import { Vector3, Quaternion } from "three";
 import PlayerInput from "../inputs/PlayerInput";
 import PlayerStateMachine from "../animation/PlayerStateMachine";
 import Character from "../Character";
+import { SocketType } from "../../../App";
 
-export default class PlayerController {
+export default class LocalPlayerController {
   public input: PlayerInput;
   public stateMachine: PlayerStateMachine;
   public decceleration: Vector3;
   public acceleration: Vector3;
   public velocity: Vector3;
+  public isRotUpdated: boolean;
+  public isPosUpdated: boolean;
 
-  constructor(public parent: Character) {
-    this.input = new PlayerInput();
+  constructor(
+    public parent: Character,
+    public socket: SocketType,
+    public userId: string
+  ) {
+    this.input = new PlayerInput(this.socket, this.parent, this.userId);
     this.stateMachine = new PlayerStateMachine(this.parent, this.input);
     this.decceleration = new Vector3(-0.0005, -0.0001, -5.0);
     this.acceleration = new Vector3(1, 0.25, 50.0);
     this.velocity = new Vector3(0, 0, 0);
+    this.isRotUpdated = false;
+    this.isPosUpdated = false;
   }
 
-  get StateMachine(): PlayerStateMachine {
-    return this.StateMachine;
-  }
-
-  Update(deltaTime: number) {
+  public Update(deltaTime: number) {
     //If parent doesn't exist, terminate Update.
     if (!this.parent) {
       return;
@@ -60,9 +65,11 @@ export default class PlayerController {
         dynamicAcc = acc.z * 2;
       }
       velocity.z += dynamicAcc * deltaTime;
+      this.isPosUpdated = true;
     }
     if (this.input.keys.Backward) {
       velocity.z -= acc.z * deltaTime;
+      this.isPosUpdated = true;
     }
     if (this.input.keys.Left) {
       axis.set(0, 1, 0); // rotation based on Y-axis(normalized vector)
@@ -71,6 +78,7 @@ export default class PlayerController {
         4.0 * Math.PI * deltaTime * this.acceleration.y
       );
       rot.multiply(quat);
+      this.isRotUpdated = true;
     }
     if (this.input.keys.Right) {
       axis.set(0, 1, 0);
@@ -79,11 +87,12 @@ export default class PlayerController {
         4.0 * -Math.PI * deltaTime * this.acceleration.y
       );
       rot.multiply(quat);
+      this.isRotUpdated = true;
     }
 
     player.quaternion.copy(rot);
-    const oldPosition = new Vector3();
-    oldPosition.copy(player.position);
+    const prevPosition = new Vector3();
+    prevPosition.copy(player.position);
 
     const forward = new Vector3(0, 0, 1); // unit vector on axis-z
     forward.applyQuaternion(player.quaternion);
@@ -98,8 +107,7 @@ export default class PlayerController {
 
     player.position.add(forward);
     player.position.add(sideways);
-
-    oldPosition.copy(player.position);
+    prevPosition.copy(player.position);
 
     /**
      * Update animation mixer
@@ -107,5 +115,27 @@ export default class PlayerController {
     if (this.parent.AnimMixer) {
       this.parent.AnimMixer.update(deltaTime);
     }
+
+    // Check whether character transform is updated
+    if (this.isPosUpdated || this.isRotUpdated) {
+      console.log("send request");
+      //if transform changed
+      this.socket.emit("TransformUpdate", {
+        userId: this.userId,
+        pos: [prevPosition.x, prevPosition.y, prevPosition.z],
+        quat: [
+          player.quaternion.x,
+          player.quaternion.y,
+          player.quaternion.z,
+          player.quaternion.w,
+        ],
+        state: this.stateMachine.currentState?.Name,
+        input: this.input.keys,
+      });
+    }
+
+    //intialize again
+    this.isPosUpdated = false;
+    this.isRotUpdated = false;
   }
 }

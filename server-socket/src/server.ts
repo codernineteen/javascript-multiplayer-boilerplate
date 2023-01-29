@@ -7,6 +7,7 @@ import {
   InterServerEvents,
   SocketData,
 } from "./types/socket-server-types";
+import ConnectedUser from "./user/ConnectedUser";
 
 /**
  * Socket.io server
@@ -25,10 +26,17 @@ const io = new Server<
   },
 });
 
-const Clients = [];
+const Clients: { [id: string]: ConnectedUser } = {};
 
 io.on("connection", (socket) => {
-  console.log("A user connected. Current users in server : " + Clients.length);
+  console.log(`a user ${socket.id} connected`);
+  Clients[socket.id] = new ConnectedUser(socket, Clients);
+
+  socket.on("disconnect", () => {
+    console.log(`a user ${socket.id} disconnected`);
+    socket.emit("CleanUpMesh", socket.id);
+    delete Clients[socket.id];
+  });
 });
 
 httpServer.listen(process.env.PORT || 5555, () => {
