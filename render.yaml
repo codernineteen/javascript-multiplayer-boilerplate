@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: virtual-classroom-backend
+    env: Node
+    rootDir: server-socket
+    buildCommand: yarn; yarn build
+    startCommand: yarn start
