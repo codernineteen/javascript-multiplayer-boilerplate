@@ -1,6 +1,24 @@
 body {
   margin: 0;
 }
+
 canvas {
-  display: block;
+  position: relative;
+}
+
+#chat-box {
+  position: absolute;
+  background-color: white;
+  border-radius: 10px;
+  height: 400px;
+  width: 300px;
+  top: 0px;
+  right: 3px;
+  z-index: 100;
+}
+
+#chat-form {
+}
+
+#chat-input {
 }

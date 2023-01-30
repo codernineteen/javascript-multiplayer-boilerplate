@@ -32,9 +32,15 @@ io.on("connection", (socket) => {
   console.log(`a user ${socket.id} connected`);
   Clients[socket.id] = new ConnectedUser(socket, Clients);
 
+  socket.on("RequestMessage", (message) => {
+    io.emit("ResponseMessage", message);
+  });
+
   socket.on("disconnect", () => {
-    console.log(`a user ${socket.id} disconnected`);
-    socket.emit("CleanUpMesh", socket.id);
+    console.log(
+      `a user ${socket.id} disconnected, processing on clean up disconnected user`
+    );
+    socket.broadcast.emit("CleanUpMesh", socket.id);
     delete Clients[socket.id];
   });
 });

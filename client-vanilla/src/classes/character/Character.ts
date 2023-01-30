@@ -100,6 +100,13 @@ export default class Character {
         }
       });
 
+      //TODO! add bounding sphere to be detected by ray caster , material : transparent
+      const cylinderGeo = new THREE.CylinderGeometry(1, 1, 4);
+      const cylinderMat = new THREE.MeshStandardMaterial({ wireframe: true });
+      const cylinderMesh = new THREE.Mesh(cylinderGeo, cylinderMat);
+      cylinderMesh.position.set(0, 3, 0);
+      this.group.add(cylinderMesh);
+
       const animations = gltf.animations;
       const animationsLength = animations.length;
       this.animMixer = new THREE.AnimationMixer(model);

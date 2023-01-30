@@ -25,6 +25,8 @@ interface ServerToClientEvents {
   }) => void;
 
   CleanUpMesh: (userId: string) => void;
+
+  ResponseMessage: (message: string) => void;
 }
 
 interface ClientToServerEvents {
@@ -45,6 +47,8 @@ interface ClientToServerEvents {
   }) => void;
 
   CleanUpMesh: (userId: string) => void;
+
+  RequestMessage: (message: string) => void;
 }
 
 interface InterServerEvents {

@@ -1,8 +1,9 @@
 //runtime
 import Canvas from "./classes/scene/Canvas";
 import Character from "./classes/character/Character";
-import { CreateARoom } from "./modules/createRoom";
 import GLTFModels from "./classes/models/GLTFModels";
+import MouseRaycaster from "./classes/events/MouseRaycaster";
+import { CreateARoom } from "./modules/createRoom";
 import { Clock } from "three";
 import { io, Socket } from "socket.io-client";
 import {
@@ -10,6 +11,7 @@ import {
   ClientToServerEvents,
 } from "./types/socket-client-types";
 import NetworkPlayerController from "./classes/character/controller/NetworkPlayerController";
+import * as THREE from "three";
 
 export type SocketType = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -18,6 +20,7 @@ export default class VirtualClassroom {
   private gltfInstance: GLTFModels;
   private controlledPlayer: Character | null;
   private players: { [id: string]: Character };
+  private mouseRaycaster: MouseRaycaster;
   private clock: THREE.Clock;
   private socket: SocketType;
   //private socket:
@@ -26,11 +29,15 @@ export default class VirtualClassroom {
     this.socket = io("http://localhost:5555", { transports: ["websocket"] });
     this.canvas = new Canvas();
     this.gltfInstance = new GLTFModels();
-    this.clock = new Clock();
     this.controlledPlayer = null;
     this.players = {};
-    this.socket.on("connect", () => {});
+    this.mouseRaycaster = new MouseRaycaster(this.canvas.renderer);
+    this.clock = new Clock();
 
+    const Room = CreateARoom();
+    this.canvas.scene.add(Room);
+
+    this.socket.on("connect", () => {});
     this.socket.on("Initialize", (data) => {
       const { userId, pos, quat } = data;
       const newPlayer = new Character(this.socket, userId, false);
@@ -41,11 +48,14 @@ export default class VirtualClassroom {
       this.controlledPlayer = newPlayer;
     });
 
+    this.socket.on("ResponseMessage", (message) => {
+      console.log(message);
+    });
+
     this.socket.on("TransformUpdate", (data) => {
       const { userId, pos, quat, state, input } = data;
 
       if (!(userId in this.players)) {
-        console.log("user not exists");
         const remotePlayer = new Character(this.socket, userId, true, input);
         remotePlayer.LoadFromGLTFModels(this.gltfInstance);
         remotePlayer.Mesh.position.set(...pos);
@@ -71,13 +81,11 @@ export default class VirtualClassroom {
       this.canvas.scene.remove(this.players[userId].Mesh);
       delete this.players[userId];
     });
-
-    const Room = CreateARoom();
-    this.canvas.scene.add(Room);
   }
 
   Run() {
     let previousTime = 0;
+
     const EventTick = () => {
       requestAnimationFrame(EventTick);
 
@@ -85,18 +93,17 @@ export default class VirtualClassroom {
       const deltaTime = elapsedTime - previousTime;
       previousTime = elapsedTime;
 
-      this.canvas.renderer.render(this.canvas.scene, this.canvas.camera);
+      this.mouseRaycaster.HoverObject(this.canvas);
+
       if (this.controlledPlayer) {
-        // for (let id in this.players) {
-        //   this.players[id].Controller.Update(deltaTime);
-        // }
         this.controlledPlayer.Controller.Update(deltaTime);
         this.canvas.topViewCamera.Update(deltaTime, this.controlledPlayer);
         for (let userId in this.players) {
           this.players[userId].Controller.Update(deltaTime);
         }
       }
-      //this.canvas.controls.update(); <- orbit control update(for debug)
+
+      this.canvas.renderer.render(this.canvas.scene, this.canvas.camera);
     };
 
     EventTick();

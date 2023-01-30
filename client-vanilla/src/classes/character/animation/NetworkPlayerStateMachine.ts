@@ -46,7 +46,6 @@ export default class NetworkPlayerStateMachine {
   }
 
   UpdateState(newState: string) {
-    console.log(newState);
     this.currentState?.Update(newState);
   }
 }
@@ -116,7 +115,6 @@ export class WalkState extends State {
       walkAnimation = this.parent.Animations["walkForward"];
       this.curAnimName = "walkForward";
     } else {
-      console.log("please walk backward");
       walkAnimation = this.parent.Animations["walkBackward"];
       this.curAnimName = "walkBackward";
     }
