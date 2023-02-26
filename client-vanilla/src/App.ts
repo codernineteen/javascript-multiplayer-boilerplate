@@ -26,7 +26,9 @@ export default class VirtualClassroom {
   private ui: UserInterface;
 
   constructor() {
-    this.socket = io("http://localhost:3333", { transports: ["websocket"] });
+    this.socket = io("https://virtual-classroom-backend.onrender.com/", {
+      transports: ["websocket"],
+    });
     this.canvas = new Canvas();
     this.clock = new Clock();
     this.gltfInstance = new GLTFModels();
