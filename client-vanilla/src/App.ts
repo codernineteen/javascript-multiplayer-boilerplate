@@ -21,7 +21,6 @@ export default class VirtualClassroom {
   private gltfInstance: GLTFModels;
   private controlledPlayer: Character | null;
   private players: { [id: string]: Character };
-  private mouseRaycaster: MouseRaycaster;
   private clock: THREE.Clock;
   private socket: SocketType;
   private ui: UserInterface;
@@ -33,7 +32,7 @@ export default class VirtualClassroom {
     this.gltfInstance = new GLTFModels();
     this.controlledPlayer = null;
     this.players = {};
-    this.mouseRaycaster = new MouseRaycaster(this.canvas);
+    new MouseRaycaster(this.canvas); // create member later if it needed
     this.ui = new UserInterface(this.socket);
 
     //Create level
