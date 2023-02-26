@@ -1,5 +1,4 @@
 //runtime
-import * as THREE from "three";
 import Canvas from "./classes/scene/Canvas";
 import Character from "./classes/character/Character";
 import GLTFModels from "./classes/models/GLTFModels";
@@ -12,12 +11,13 @@ import {
   ClientToServerEvents,
 } from "./types/socket-client-types";
 import NetworkPlayerController from "./classes/character/controller/NetworkPlayerController";
+import * as THREE from "three";
 import UserInterface from "./classes/ui/UserInterface";
 
 export type SocketType = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 export default class VirtualClassroom {
-  private canvas: Canvas;
+  private canvas: Canvas = new Canvas();
   private gltfInstance: GLTFModels;
   private controlledPlayer: Character | null;
   private players: { [id: string]: Character };
@@ -25,24 +25,25 @@ export default class VirtualClassroom {
   private clock: THREE.Clock;
   private socket: SocketType;
   private ui: UserInterface;
+  //todo
+  // private outlineMesh: any;
+  // private outlineMat: THREE.Material;
 
   constructor() {
     this.socket = io("http://localhost:3333", { transports: ["websocket"] });
     this.canvas = new Canvas();
-    this.clock = new Clock();
     this.gltfInstance = new GLTFModels();
     this.controlledPlayer = null;
     this.players = {};
-    this.mouseRaycaster = new MouseRaycaster(this.canvas);
+    this.mouseRaycaster = new MouseRaycaster(this.canvas.renderer);
+    this.clock = new Clock();
     this.ui = new UserInterface(this.socket);
+    //this.outlineMat = new THREE.MeshPhongMaterial({ color: "#00A0DE" });
 
-    //Create level
     const Room = CreateARoom();
     this.canvas.scene.add(Room);
 
     this.socket.on("connect", () => {});
-
-    //initialize a player which in controlled by current client
     this.socket.on("Initialize", (data) => {
       const { userId, pos, quat } = data;
       const newPlayer = new Character(this.socket, userId, false);
@@ -51,12 +52,10 @@ export default class VirtualClassroom {
       newPlayer.Mesh.quaternion.set(...quat);
       this.canvas.scene.add(newPlayer.Mesh);
       this.controlledPlayer = newPlayer;
-      //User input on/off for chat focus
-      this.ui.chatBox.OnFocusInHandler(this.controlledPlayer);
-      this.ui.chatBox.OnFocusOutHandler(this.controlledPlayer);
+
+      this.players[userId] = this.controlledPlayer;
     });
 
-    //listening on movement user's input and send it to socket server
     this.socket.on("TransformUpdate", (data) => {
       const { userId, pos, quat, state, input } = data;
 
@@ -82,13 +81,28 @@ export default class VirtualClassroom {
       }
     });
 
+    // Setup outline mesh for whole player
+    // for (let id in this.players) {
+    //   const outlineMesh = new Character(this.socket, id, true);
+    //   const parentPosition = this.players[id].Mesh.position;
+    //   const parentQuat = this.players[id].Mesh.quaternion;
+
+    //   // outlineMesh.Mesh.position.copy(parentPosition);
+    //   // outlineMesh.Mesh.quaternion.copy(parentQuat);
+    //   // if (outlineMesh) {
+    //   //   outlineMesh.Mesh.traverse((node: any) => {
+    //   //     if (node.isMesh) node.material = this.outlineMat;
+    //   //   });
+    //   // }
+    // }
+
+    this.socket.on("ResponseMessage", (message) => {
+      this.ui.chatBox.CreateMessageList(message);
+    });
+
     this.socket.on("CleanUpMesh", (userId: string) => {
       this.canvas.scene.remove(this.players[userId].Mesh);
       delete this.players[userId];
-    });
-
-    this.socket.on("ResponseMessage", (message, id) => {
-      this.ui.chatBox.CreateMessageList(message, id);
     });
   }
 
@@ -98,10 +112,19 @@ export default class VirtualClassroom {
     const EventTick = () => {
       requestAnimationFrame(EventTick);
 
+      //calculate delta time
       const elapsedTime = this.clock.getElapsedTime();
       const deltaTime = elapsedTime - previousTime;
       previousTime = elapsedTime;
 
+      //working!!
+      const intersectedObjs = this.mouseRaycaster.HoverObject(this.canvas);
+      if (intersectedObjs) {
+        console.log(intersectedObjs);
+      } else {
+      }
+
+      //detect input focuse and unable character movement input
       if (this.controlledPlayer) {
         this.controlledPlayer.Controller.Update(deltaTime);
         this.canvas.topViewCamera.Update(deltaTime, this.controlledPlayer);
@@ -110,11 +133,7 @@ export default class VirtualClassroom {
         }
       }
 
-      this.canvas.composer.render(deltaTime);
-      //This is the most important tip.
-      //When we use composer, we only need to use render method of composer because we already passed scene and camera component to render pass
-      //If we render twice(composer and renderer), we can't see the post processing effects because renderer override render pass's rendering
-      //this.canvas.renderer.render(this.canvas.scene, this.canvas.camera);
+      this.canvas.renderer.render(this.canvas.scene, this.canvas.camera);
     };
 
     EventTick();

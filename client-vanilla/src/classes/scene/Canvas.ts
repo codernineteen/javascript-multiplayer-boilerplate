@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import Character from "../character/Character";
-//import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
+import { OutlinePass } from "three/examples/jsm/postprocessing/OutlinePass";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass";
+import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader";
 
 export default class Canvas {
   //member variables
@@ -11,6 +15,11 @@ export default class Canvas {
   public ambLight: THREE.AmbientLight;
   //public controls: OrbitControls;
   public topViewCamera: TopViewCamera;
+  //shader effect members
+  public composer: EffectComposer;
+  public renderPass: RenderPass;
+  public outlinePass: OutlinePass;
+  public effectFXAA: ShaderPass;
 
   constructor() {
     // canvas
@@ -37,7 +46,7 @@ export default class Canvas {
     const near = 1.0;
     const far = 1000.0;
     this.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    this.camera.position.set(11, 14, 13);
+    this.camera.position.set(20, 30, 30);
 
     this.topViewCamera = new TopViewCamera(this.camera);
 
@@ -47,18 +56,20 @@ export default class Canvas {
     // - light
     // - directional light
     this.dirLight = new THREE.DirectionalLight(0xffffff);
-    this.dirLight.position.set(0, 100, 10);
+    this.dirLight.position.set(0, 100, 50);
     this.dirLight.target.position.set(0, 0, 0);
     this.dirLight.castShadow = true;
-    this.dirLight.shadow.bias = -0.01; // ?
-    this.dirLight.shadow.mapSize.width = 2048; // ?
-    this.dirLight.shadow.mapSize.width = 2048; // ?
-    this.dirLight.shadow.camera.near = 1.0; // ?
-    this.dirLight.shadow.camera.far = 500; // ?
-    this.dirLight.shadow.camera.left = 200; // ?
-    this.dirLight.shadow.camera.right = -200; // ?
-    this.dirLight.shadow.camera.top = 200; // ?
-    this.dirLight.shadow.camera.bottom = -200; // ?
+    this.dirLight.shadow.radius = 10;
+    //For performance, use low resolution than 2048
+    this.dirLight.shadow.mapSize.width = 2048; // detail of shadow edge
+    this.dirLight.shadow.mapSize.height = 2048; // detail of shadow edge
+    this.dirLight.shadow.camera.near = 1; // available range of shadow existence (start point)
+    this.dirLight.shadow.camera.far = 500; // available range of shadow existence (end point)
+    //amplitude
+    this.dirLight.shadow.camera.left = 100;
+    this.dirLight.shadow.camera.right = -100;
+    this.dirLight.shadow.camera.top = 100;
+    this.dirLight.shadow.camera.bottom = -100;
     this.dirLight.intensity = 0.6;
     this.scene.add(this.dirLight);
     // - ambient light
@@ -67,29 +78,67 @@ export default class Canvas {
     this.scene.add(this.ambLight);
 
     // -- skybox
-    const loader = new THREE.CubeTextureLoader();
-    const texture = loader.load([
-      "textures/beachTexture/posx.jpg",
-      "textures/beachTexture/negx.jpg",
-      "textures/beachTexture/posy.jpg",
-      "textures/beachTexture/negy.jpg",
-      "textures/beachTexture/posz.jpg",
-      "textures/beachTexture/negz.jpg",
-    ]);
+    // const loader = new THREE.CubeTextureLoader();
+    // const texture = loader.load([
+    //   "textures/beachTexture/posx.jpg",
+    //   "textures/beachTexture/negx.jpg",
+    //   "textures/beachTexture/posy.jpg",
+    //   "textures/beachTexture/negy.jpg",
+    //   "textures/beachTexture/posz.jpg",
+    //   "textures/beachTexture/negz.jpg",
+    // ]);
 
-    // -- orbit controls (use this only for debug mode)
-    // this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    // this.controls.target.set(0, 0, 0);
-    // this.controls.enableDamping = true;
+    // -- shader effect
+    // - composer
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // - render pass
+    this.renderPass = new RenderPass(this.scene, this.camera);
+    this.composer.addPass(this.renderPass);
+    // - outline pass
+    this.outlinePass = new OutlinePass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      this.scene,
+      this.camera
+    );
+    // -- parameter config
+    this.outlinePass.edgeStrength = 3.0;
+    this.outlinePass.edgeGlow = 1.0;
+    this.outlinePass.edgeThickness = 3.0;
+    this.outlinePass.pulsePeriod = 0;
+    this.outlinePass.usePatternTexture = false; // patter texture for an object mesh
+    this.outlinePass.visibleEdgeColor.set("#1abaff"); // set basic edge color
+    this.outlinePass.hiddenEdgeColor.set("#1abaff"); // set edge color when it hidden by other objects
+    this.composer.addPass(this.outlinePass);
 
-    this.scene.background = texture;
+    //shader
+    this.effectFXAA = new ShaderPass(FXAAShader);
+    this.effectFXAA.uniforms["resolution"].value.set(
+      1 / window.innerWidth,
+      1 / window.innerHeight
+    );
+    this.effectFXAA.renderToScreen = true;
+    this.composer.addPass(this.effectFXAA);
+
+    // - background color
+    this.scene.background = new THREE.Color("#eee");
   }
 
   //responsive screen
   OnWindowResize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix(); // ?
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+    this.renderer.setSize(width, height);
+    this.composer.setSize(width, height);
+
+    this.effectFXAA.uniforms["resolution"].value.set(
+      1 / window.innerWidth,
+      1 / window.innerHeight
+    );
   }
 }
 
@@ -103,7 +152,7 @@ class TopViewCamera {
   }
 
   CalculateOffset(player: Character) {
-    const offset = new THREE.Vector3(13, 17, 14); //hardcoded offset - this work as a spring arm(local space)
+    const offset = new THREE.Vector3(20, 30, 30); //hardcoded offset - this work as a spring arm(local space)
     offset.add(player.Mesh.position);
     return offset;
   }

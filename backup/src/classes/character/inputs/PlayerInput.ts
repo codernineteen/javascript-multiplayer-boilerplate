@@ -12,9 +12,6 @@ export interface KeyInput {
 
 export default class PlayerInput {
   public keys: KeyInput;
-  public keydownHandler: (evt: KeyboardEvent) => void;
-  public keyupHandler: (evt: KeyboardEvent) => void;
-
   constructor(
     public socket: SocketType,
     public player: Character,
@@ -28,10 +25,13 @@ export default class PlayerInput {
       Space: false,
       Shift: false,
     };
-    this.keydownHandler = this.OnKeyDownHandler.bind(this);
-    this.keyupHandler = this.OnKeyUpHandler.bind(this);
-    document.addEventListener("keydown", this.keydownHandler);
-    document.addEventListener("keyup", this.keyupHandler);
+
+    document.addEventListener("keydown", (evt) => {
+      this.OnKeyDownHandler(evt);
+    });
+    document.addEventListener("keyup", (evt) => {
+      this.OnKeyUpHandler(evt);
+    });
   }
 
   /**
@@ -97,25 +97,17 @@ export default class PlayerInput {
     }
   }
 
-  RemoveKeydownHandler() {
-    console.log("called");
-    //Why can't remove?
-    document.removeEventListener("keydown", this.keydownHandler);
-  }
-
-  EnrollKeyDownHandler() {
-    document.addEventListener("keydown", this.keydownHandler);
-  }
-
   StopTransformUpdate() {
     const playerPos = this.player.Mesh.position;
     const playerQuat = this.player.Mesh.quaternion;
-    this.socket.emit("TransformUpdate", {
-      userId: this.userId,
-      pos: [playerPos.x, playerPos.y, playerPos.z],
-      quat: [playerQuat.x, playerQuat.y, playerQuat.z, playerQuat.w],
-      state: "idle",
-      input: this.keys,
-    });
+    if (this.socket) {
+      this.socket.emit("TransformUpdate", {
+        userId: this.userId,
+        pos: [playerPos.x, playerPos.y, playerPos.z],
+        quat: [playerQuat.x, playerQuat.y, playerQuat.z, playerQuat.w],
+        state: "idle",
+        input: this.keys,
+      });
+    }
   }
 }
