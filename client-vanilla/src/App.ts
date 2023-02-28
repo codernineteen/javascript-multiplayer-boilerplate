@@ -1,20 +1,27 @@
-//runtime
+//client modules
 import * as THREE from "three";
 import Canvas from "./classes/scene/Canvas";
 import Character from "./classes/character/Character";
 import GLTFModels from "./classes/models/GLTFModels";
 import MouseRaycaster from "./classes/events/MouseRaycaster";
-import { CreateARoom } from "./modules/createRoom";
-import { Clock } from "three";
-import { io, Socket } from "socket.io-client";
-import {
-  ServerToClientEvents,
-  ClientToServerEvents,
-} from "./types/socket-client-types";
 import NetworkPlayerController from "./classes/character/controller/NetworkPlayerController";
 import UserInterface from "./classes/ui/UserInterface";
+import { CreateARoom } from "./modules/createRoom";
+import { Clock } from "three";
+//udp server modules
+import { geckos } from "@geckos.io/client";
+import type { ClientChannel } from "@geckos.io/client";
+import { KeyInput } from "./classes/character/inputs/PlayerInput";
 
-export type SocketType = Socket<ServerToClientEvents, ClientToServerEvents>;
+//types for udp channel data
+export type ChatDataType = { message: string; id: string };
+export type UserDataType = {
+  userId: string;
+  pos: [x: number, y: number, z: number];
+  quat: [x: number, y: number, z: number, w: number];
+  state: string | undefined;
+  input: KeyInput;
+};
 
 export default class VirtualClassroom {
   private canvas: Canvas;
@@ -22,35 +29,58 @@ export default class VirtualClassroom {
   private controlledPlayer: Character | null;
   private players: { [id: string]: Character };
   private clock: THREE.Clock;
-  private socket: SocketType;
+  //private socket: SocketType;
+  private channel: ClientChannel;
   private ui: UserInterface;
 
   constructor() {
-    this.socket = io("https://virtual-classroom-backend.onrender.com/", {
-      transports: ["websocket"],
-    });
+    //production server url : https://virtual-classroom-backend.onrender.com/
+    //dev server (socket) : localhost:3333
+    //dev server (gecko) : 127.0.0.1:5555;
+    //gecko server should use 127.0.0.1 for local environment instead of localhost
+    //Connect app to udp server
+    this.channel = geckos({ port: 5555, url: "http://127.0.0.1" });
     this.canvas = new Canvas();
     this.clock = new Clock();
     this.gltfInstance = new GLTFModels();
     this.controlledPlayer = null;
     this.players = {};
+    this.ui = new UserInterface(this.channel);
     new MouseRaycaster(this.canvas); // create member later if it needed
-    this.ui = new UserInterface(this.socket);
-
     //Create level
     const Room = CreateARoom();
-    this.canvas.scene.add(Room);
 
-    this.socket.on("connect", () => {});
+    // window.addEventListener("beforeunload", () => {
+    //   // Send an HTTP request to your server to notify it that the tab has been closed
+    // });
+
+    //channel connect
+    let channelId;
+    this.channel.onConnect((error) => {
+      //if there is any connection error, stop application
+      if (error) {
+        console.log("UDP channel connection error: " + error.message);
+        return;
+      }
+
+      window.addEventListener("beforeunload", () => {
+        channelId = this.channel.id;
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://127.0.0.1:5555/leave");
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(JSON.stringify({ key: channelId }));
+      });
+    });
 
     //initialize a player which in controlled by current client
-    this.socket.on("Initialize", (data) => {
-      const { userId, pos, quat } = data;
-      const newPlayer = new Character(this.socket, userId, false);
+    this.channel.on("initialize", (data) => {
+      const { userId, pos, quat } = data as UserDataType;
+      const newPlayer = new Character(this.channel, userId, false);
       newPlayer.LoadFromGLTFModels(this.gltfInstance);
       newPlayer.Mesh.position.set(...pos);
       newPlayer.Mesh.quaternion.set(...quat);
       this.canvas.scene.add(newPlayer.Mesh);
+      this.canvas.scene.add(Room); // create level after player initialized
       this.controlledPlayer = newPlayer;
       //User input on/off for chat focus
       this.ui.chatBox.OnFocusInHandler(this.controlledPlayer);
@@ -58,11 +88,11 @@ export default class VirtualClassroom {
     });
 
     //listening on movement user's input and send it to socket server
-    this.socket.on("TransformUpdate", (data) => {
-      const { userId, pos, quat, state, input } = data;
+    this.channel.on("transform update", (data) => {
+      const { userId, pos, quat, state, input } = data as UserDataType;
 
       if (!(userId in this.players)) {
-        const remotePlayer = new Character(this.socket, userId, true, input);
+        const remotePlayer = new Character(this.channel, userId, true, input);
         remotePlayer.LoadFromGLTFModels(this.gltfInstance);
         remotePlayer.Mesh.position.set(...pos);
         remotePlayer.Mesh.quaternion.set(...quat);
@@ -83,13 +113,17 @@ export default class VirtualClassroom {
       }
     });
 
-    this.socket.on("CleanUpMesh", (userId: string) => {
-      this.canvas.scene.remove(this.players[userId].Mesh);
-      delete this.players[userId];
+    //listen chat message from server
+    this.channel.on("chat message", (data: Object) => {
+      const chatData = data as ChatDataType;
+      this.ui.chatBox.CreateMessageList(chatData.message, chatData.id);
     });
 
-    this.socket.on("ResponseMessage", (message, id) => {
-      this.ui.chatBox.CreateMessageList(message, id);
+    //Cleanup mesh when a user logout from application
+    this.channel.on("cleanup mesh", (userId) => {
+      this.canvas.scene.remove(this.players[userId as string].Mesh);
+      this.ui.chatBox.CreateLeaveMessage(userId as string);
+      delete this.players[userId as string];
     });
   }
 
@@ -99,6 +133,7 @@ export default class VirtualClassroom {
     const EventTick = () => {
       requestAnimationFrame(EventTick);
 
+      //calculate delta time
       const elapsedTime = this.clock.getElapsedTime();
       const deltaTime = elapsedTime - previousTime;
       previousTime = elapsedTime;
@@ -111,13 +146,18 @@ export default class VirtualClassroom {
         }
       }
 
+      //composer render(render pass handle this)
       this.canvas.composer.render(deltaTime);
       //This is the most important tip.
       //When we use composer, we only need to use render method of composer because we already passed scene and camera component to render pass
       //If we render twice(composer and renderer), we can't see the post processing effects because renderer override render pass's rendering
-      //this.canvas.renderer.render(this.canvas.scene, this.canvas.camera);
+      //this.canvas.renderer.render(this.canvas.scene, this.canvas.camera); <-- Don't use this duplicate render with composer
     };
 
     EventTick();
+  }
+
+  get Channel() {
+    return this.channel;
   }
 }

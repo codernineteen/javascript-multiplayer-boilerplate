@@ -1,5 +1,5 @@
-import { SocketType } from "../../../App";
 import Character from "../Character";
+import type { ClientChannel } from "@geckos.io/client";
 
 export interface KeyInput {
   Forward: boolean;
@@ -16,7 +16,7 @@ export default class PlayerInput {
   public keyupHandler: (evt: KeyboardEvent) => void;
 
   constructor(
-    public socket: SocketType,
+    public channel: ClientChannel,
     public player: Character,
     public userId: string
   ) {
@@ -107,10 +107,11 @@ export default class PlayerInput {
     document.addEventListener("keydown", this.keydownHandler);
   }
 
+  //change current state to 'idle' state when keyup
   StopTransformUpdate() {
     const playerPos = this.player.Mesh.position;
     const playerQuat = this.player.Mesh.quaternion;
-    this.socket.emit("TransformUpdate", {
+    this.channel.emit("transform update", {
       userId: this.userId,
       pos: [playerPos.x, playerPos.y, playerPos.z],
       quat: [playerQuat.x, playerQuat.y, playerQuat.z, playerQuat.w],

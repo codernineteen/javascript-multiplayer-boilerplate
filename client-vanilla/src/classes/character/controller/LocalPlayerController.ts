@@ -2,7 +2,7 @@ import { Vector3, Quaternion } from "three";
 import PlayerInput from "../inputs/PlayerInput";
 import PlayerStateMachine from "../animation/PlayerStateMachine";
 import Character from "../Character";
-import { SocketType } from "../../../App";
+import type { ClientChannel } from "@geckos.io/client";
 
 export default class LocalPlayerController {
   public input: PlayerInput;
@@ -15,10 +15,10 @@ export default class LocalPlayerController {
 
   constructor(
     public parent: Character,
-    public socket: SocketType,
+    public channel: ClientChannel,
     public userId: string
   ) {
-    this.input = new PlayerInput(this.socket, this.parent, this.userId);
+    this.input = new PlayerInput(this.channel, this.parent, this.userId);
     this.stateMachine = new PlayerStateMachine(this.parent, this.input);
     this.decceleration = new Vector3(-0.0005, -0.0001, -5.0);
     this.acceleration = new Vector3(1, 0.25, 50.0);
@@ -120,7 +120,7 @@ export default class LocalPlayerController {
     if (this.isPosUpdated || this.isRotUpdated) {
       console.log("send request");
       //if transform changed
-      this.socket.emit("TransformUpdate", {
+      this.channel.emit("transform update", {
         userId: this.userId,
         pos: [prevPosition.x, prevPosition.y, prevPosition.z],
         quat: [

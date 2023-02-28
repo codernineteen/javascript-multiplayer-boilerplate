@@ -1,16 +1,15 @@
 import NetworkPlayerStateMachine from "../animation/NetworkPlayerStateMachine";
 import Character from "../Character";
-import { SocketType } from "../../../App";
 import { KeyInput } from "../inputs/PlayerInput";
+import type { ClientChannel } from "@geckos.io/client";
 
 //remove input function, update by socket on event
 export default class NetworkPlayerController {
-  //public stateMachine: PlayerStateMachine;
   public stateMachine: NetworkPlayerStateMachine;
 
   constructor(
     public parent: Character,
-    public socket: SocketType,
+    public channel: ClientChannel,
     public userId: string,
     public input: KeyInput
   ) {

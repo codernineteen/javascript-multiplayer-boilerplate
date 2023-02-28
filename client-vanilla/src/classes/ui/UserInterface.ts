@@ -1,10 +1,10 @@
 import ChatBox from "./ChatBox";
-import { SocketType } from "../../App";
+import type { ClientChannel } from "@geckos.io/client";
 
 export default class UserInterface {
   public chatBox: ChatBox;
 
-  constructor(public socket: SocketType) {
-    this.chatBox = new ChatBox(socket);
+  constructor(public channel: ClientChannel) {
+    this.chatBox = new ChatBox(channel);
   }
 }
