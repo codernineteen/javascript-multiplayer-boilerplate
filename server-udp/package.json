@@ -1,0 +1,37 @@
+{
+  "name": "server-udp",
+  "version": "0.1.1",
+  "description": "server implementation with udp protocol using geckos.io library",
+  "main": "server.js",
+  "scripts": {
+    "start": "npm-run-all --parallel dev:*",
+    "dev:nodejs": "nodemon src/server.mjs",
+    "dev:browser": "live-server --port=8080",
+    "dev:esbuild": "esbuild js/index.js --outfile=js/bundle.js --bundle --watch",
+    "build": "esbuild js/index.js --outfile=js/bundle.js --bundle"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codernineteen/chungang-campus.git"
+  },
+  "author": "codernineteen",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/codernineteen/chungang-campus/issues"
+  },
+  "homepage": "https://github.com/codernineteen/chungang-campus#readme",
+  "dependencies": {
+    "@geckos.io/client": "^2.3.0",
+    "@geckos.io/server": "^2.3.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^18.14.2",
+    "nodemon": "^2.0.20",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.5"
+  }
+}
