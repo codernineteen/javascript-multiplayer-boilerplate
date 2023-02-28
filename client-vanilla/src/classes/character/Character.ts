@@ -3,8 +3,8 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import GLTFModels from "../models/GLTFModels";
 import LocalPlayerController from "./controller/LocalPlayerController";
 import NetworkPlayerController from "./controller/NetworkPlayerController";
-import { SocketType } from "../../App";
 import { KeyInput } from "./inputs/PlayerInput";
+import type { ClientChannel } from "@geckos.io/client";
 
 interface AnimationObject {
   [animName: string]: {
@@ -21,7 +21,7 @@ export default class Character {
   private controller: LocalPlayerController | NetworkPlayerController;
 
   constructor(
-    public socket: SocketType,
+    public channel: ClientChannel,
     public userId: string,
     public isRemote: boolean,
     public input?: KeyInput
@@ -33,11 +33,11 @@ export default class Character {
     this.controller = isRemote
       ? new NetworkPlayerController(
           this,
-          this.socket,
+          this.channel,
           this.userId,
           this.input as KeyInput
         )
-      : new LocalPlayerController(this, this.socket, this.userId); // give 'this' context to state machine
+      : new LocalPlayerController(this, this.channel, this.userId); // give 'this' context to state machine
   }
 
   /**

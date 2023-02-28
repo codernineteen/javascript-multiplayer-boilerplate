@@ -1,6 +1,6 @@
-import { SocketType } from "../../App";
 import Character from "../character/Character";
 import PlayerInput from "../character/inputs/PlayerInput";
+import type { ClientChannel } from "@geckos.io/client";
 
 export default class ChatBox {
   public inputElement: HTMLInputElement | null;
@@ -8,7 +8,7 @@ export default class ChatBox {
   public messageList: HTMLElement | null;
   public message: string;
 
-  constructor(public socket: SocketType) {
+  constructor(public channel: ClientChannel) {
     this.message = "";
     this.inputElement = document.getElementById(
       "chat-input"
@@ -23,7 +23,10 @@ export default class ChatBox {
   OnSubmitHandler() {
     this.formElement?.addEventListener("submit", (evt) => {
       evt.preventDefault();
-      this.socket.emit("RequestMessage", this.message, this.socket.id);
+      this.channel.emit("chat message", {
+        message: this.message,
+        id: this.channel.id,
+      });
       if (this.inputElement) this.inputElement.value = "";
     });
   }
@@ -52,6 +55,14 @@ export default class ChatBox {
     const listItem = document.createElement("li");
     listItem.innerText = `${id.slice(0, 5)} : ${message}`;
     listItem.className = "chat-list-item";
+    this.messageList?.appendChild(listItem);
+  }
+
+  CreateLeaveMessage(id: string) {
+    const listItem = document.createElement("li");
+    listItem.innerText = `${id.slice(0, 5)}가 퇴장하였습니다.`;
+    listItem.className = "chat-list-item";
+    listItem.style.color = "blue";
     this.messageList?.appendChild(listItem);
   }
 }
