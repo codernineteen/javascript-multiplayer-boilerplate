@@ -11,23 +11,16 @@ import { Clock } from "three";
 //udp server modules
 import { geckos } from "@geckos.io/client";
 import type { ClientChannel } from "@geckos.io/client";
-import { KeyInput } from "./classes/character/inputs/PlayerInput";
+import type { TransformPacket } from "./types/PlayerType";
 
 //types for udp channel data
 export type ChatDataType = { message: string; id: string };
-export type UserDataType = {
-  userId: string;
-  pos: [x: number, y: number, z: number];
-  quat: [x: number, y: number, z: number, w: number];
-  state: string | undefined;
-  input: KeyInput;
-};
 
 export default class VirtualClassroom {
   private canvas: Canvas;
   private gltfInstance: GLTFModels;
   private controlledPlayer: Character | null;
-  private players: { [id: string]: Character };
+  private players: Map<string, Character>;
   private clock: THREE.Clock;
   //private socket: SocketType;
   private channel: ClientChannel;
@@ -44,7 +37,7 @@ export default class VirtualClassroom {
     this.clock = new Clock();
     this.gltfInstance = new GLTFModels();
     this.controlledPlayer = null;
-    this.players = {};
+    this.players = new Map();
     this.ui = new UserInterface(this.channel);
     new MouseRaycaster(this.canvas); // create member later if it needed
     //Create level
@@ -62,7 +55,6 @@ export default class VirtualClassroom {
         console.log("UDP channel connection error: " + error.message);
         return;
       }
-
       window.addEventListener("beforeunload", () => {
         channelId = this.channel.id;
         var xhr = new XMLHttpRequest();
@@ -74,8 +66,8 @@ export default class VirtualClassroom {
 
     //initialize a player which in controlled by current client
     this.channel.on("initialize", (data) => {
-      const { userId, pos, quat } = data as UserDataType;
-      const newPlayer = new Character(this.channel, userId, false);
+      const { id, pos, quat } = data as TransformPacket;
+      const newPlayer = new Character(this.channel, id, false);
       newPlayer.LoadFromGLTFModels(this.gltfInstance);
       newPlayer.Mesh.position.set(...pos);
       newPlayer.Mesh.quaternion.set(...quat);
@@ -89,20 +81,20 @@ export default class VirtualClassroom {
 
     //listening on movement user's input and send it to socket server
     this.channel.on("transform update", (data) => {
-      const { userId, pos, quat, state, input } = data as UserDataType;
+      const { id, pos, quat, state, input } = data as TransformPacket;
 
-      if (!(userId in this.players)) {
-        const remotePlayer = new Character(this.channel, userId, true, input);
+      if (!this.players.has(id)) {
+        const remotePlayer = new Character(this.channel, id, true, input);
         remotePlayer.LoadFromGLTFModels(this.gltfInstance);
         remotePlayer.Mesh.position.set(...pos);
         remotePlayer.Mesh.quaternion.set(...quat);
         this.canvas.scene.add(remotePlayer.Mesh);
-        this.players[userId] = remotePlayer;
+        this.players.set(id, remotePlayer);
       } else {
-        const networkController = this.players[userId]
-          .Controller as NetworkPlayerController;
-        this.players[userId].Mesh.position.set(...pos);
-        this.players[userId].Mesh.quaternion.set(...quat);
+        const networkController = this.players.get(id)
+          ?.Controller as NetworkPlayerController;
+        this.players.get(id)?.Mesh.position.set(...pos);
+        this.players.get(id)?.Mesh.quaternion.set(...quat);
         networkController.input.Forward = input.Forward;
         networkController.input.Backward = input.Backward;
         networkController.input.Left = input.Left;
@@ -121,9 +113,12 @@ export default class VirtualClassroom {
 
     //Cleanup mesh when a user logout from application
     this.channel.on("cleanup mesh", (userId) => {
-      this.canvas.scene.remove(this.players[userId as string].Mesh);
-      this.ui.chatBox.CreateLeaveMessage(userId as string);
-      delete this.players[userId as string];
+      const player = this.players.get(userId as string);
+      if (player) {
+        this.canvas.scene.remove(player.Mesh);
+        this.ui.chatBox.CreateLeaveMessage(userId as string);
+        this.players.delete(userId as string);
+      }
     });
   }
 
@@ -141,8 +136,9 @@ export default class VirtualClassroom {
       if (this.controlledPlayer) {
         this.controlledPlayer.Controller.Update(deltaTime);
         this.canvas.topViewCamera.Update(deltaTime, this.controlledPlayer);
-        for (let userId in this.players) {
-          this.players[userId].Controller.Update(deltaTime);
+        //can't iterate map with in keyword
+        for (let userId of this.players.keys()) {
+          this.players.get(userId)?.Controller.Update(deltaTime);
         }
       }
 

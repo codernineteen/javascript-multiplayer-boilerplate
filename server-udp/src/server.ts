@@ -1,14 +1,16 @@
-import geckos from "@geckos.io/server";
+import geckos, { ChannelId, ServerChannel } from "@geckos.io/server";
 import http from "http";
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
-import { createUser } from "./functions/createUser.mjs";
+import Player from "./classes/Player.js";
 
 const app = express();
 const server = http.createServer(app);
-const io = geckos({ cors: { allowAuthorization: true } });
-const clients = {};
+const io = geckos({
+  cors: { origin: "http://localhost:5173", allowAuthorization: true },
+});
+const players: Map<string, Player> = new Map();
 
 //config & middleware
 const corsOptions = {
@@ -20,27 +22,26 @@ app.use(bodyParser.json()); //To parser request body
 
 // game-server
 io.addServer(server);
-io.onConnection((channel) => {
-  // web-server;
-  channel.onDisconnect(() => {
-    //!!ISSUE: There is a delay in detecting channel disconnection
-    console.log(`a user ${channel.id} disconnected`);
-    delete clients[channel.id];
-  });
-
+io.onConnection((channel: ServerChannel) => {
   console.log(`a user ${channel.id} connected`);
-  clients[channel.id] = createUser(channel);
+  players.set(channel.id as string, new Player(channel));
 
   channel.on("chat message", (data) => {
     // emit the "chat message" data to all channels in the same room
     io.room(channel.roomId).emit("chat message", data);
   });
+
+  channel.onDisconnect(() => {
+    //!!ISSUE: There is a delay in detecting channel disconnection
+    console.log(`a user ${channel.id} disconnected`);
+    players.delete(channel.id as string);
+  });
 });
 
 app.post("/leave", (req, res) => {
   const clientId = req.body.key;
-  const client = clients[clientId];
-  client.cleanup();
+  const player = players.get(clientId);
+  player?.CleanUp();
 });
 
 // run server

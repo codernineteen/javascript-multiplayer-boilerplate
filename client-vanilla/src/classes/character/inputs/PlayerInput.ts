@@ -98,8 +98,6 @@ export default class PlayerInput {
   }
 
   RemoveKeydownHandler() {
-    console.log("called");
-    //Why can't remove?
     document.removeEventListener("keydown", this.keydownHandler);
   }
 
@@ -112,7 +110,7 @@ export default class PlayerInput {
     const playerPos = this.player.Mesh.position;
     const playerQuat = this.player.Mesh.quaternion;
     this.channel.emit("transform update", {
-      userId: this.userId,
+      id: this.userId,
       pos: [playerPos.x, playerPos.y, playerPos.z],
       quat: [playerQuat.x, playerQuat.y, playerQuat.z, playerQuat.w],
       state: "idle",
