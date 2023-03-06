@@ -1,3 +1,3 @@
-import VirtualClassroom from "./App";
-const VC = new VirtualClassroom();
-VC.Run();
+import Router from "./router/Router";
+
+new Router();

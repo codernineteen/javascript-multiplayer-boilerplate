@@ -1,5 +1,5 @@
 import type { KeyInput, TransformPacket } from "../types/PlayerType";
-import type { ChannelId, ServerChannel } from "@geckos.io/server";
+import type { ChannelId, Data, ServerChannel } from "@geckos.io/server";
 
 export default class Player {
   private id: ChannelId;
@@ -30,7 +30,7 @@ export default class Player {
       input: this.input,
     });
 
-    channel.on("transform update", (data) => {
+    channel.on("transform update", (data: Data) => {
       const { pos, quat, state, input } = data as TransformPacket;
       this.pos = pos;
       this.quat = quat;

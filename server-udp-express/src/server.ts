@@ -1,4 +1,4 @@
-import geckos, { ChannelId, ServerChannel } from "@geckos.io/server";
+import geckos, { ChannelId, Data, ServerChannel } from "@geckos.io/server";
 import http from "http";
 import express from "express";
 import cors from "cors";
@@ -26,7 +26,7 @@ io.onConnection((channel: ServerChannel) => {
   console.log(`a user ${channel.id} connected`);
   players.set(channel.id as string, new Player(channel));
 
-  channel.on("chat message", (data) => {
+  channel.on("chat message", (data: Data) => {
     // emit the "chat message" data to all channels in the same room
     io.room(channel.roomId).emit("chat message", data);
   });
