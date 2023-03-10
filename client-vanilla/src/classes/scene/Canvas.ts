@@ -5,6 +5,7 @@ import { OutlinePass } from "three/examples/jsm/postprocessing/OutlinePass";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass";
 import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader";
+//import { RenderPixelatedPass } from "three/examples/jsm/postprocessing/RenderPixelatedPass";
 
 export default class Canvas {
   //member variables
@@ -19,6 +20,7 @@ export default class Canvas {
   public composer: EffectComposer;
   public renderPass: RenderPass;
   public outlinePass: OutlinePass;
+  //public pixelPass: RenderPixelatedPass;
   public effectFXAA: ShaderPass;
 
   constructor() {
@@ -107,9 +109,16 @@ export default class Canvas {
     this.outlinePass.edgeThickness = 3.0;
     this.outlinePass.pulsePeriod = 0;
     this.outlinePass.usePatternTexture = false; // patter texture for an object mesh
-    this.outlinePass.visibleEdgeColor.set("#1abaff"); // set basic edge color
-    this.outlinePass.hiddenEdgeColor.set("#1abaff"); // set edge color when it hidden by other objects
+    this.outlinePass.visibleEdgeColor.set("#0084FA"); // set basic edge color
+    this.outlinePass.hiddenEdgeColor.set("#0084FA"); // set edge color when it hidden by other objects
     this.composer.addPass(this.outlinePass);
+
+    // -pixel rendering pass
+    // this.pixelPass = new RenderPixelatedPass(6, this.scene, this.camera);
+    // this.pixelPass.pixelSize = 4;
+    // this.pixelPass.normalEdgeStrength = 0.3;
+    // this.pixelPass.depthEdgeStrength = 0.4;
+    // this.composer.addPass(this.pixelPass);
 
     //shader
     this.effectFXAA = new ShaderPass(FXAAShader);

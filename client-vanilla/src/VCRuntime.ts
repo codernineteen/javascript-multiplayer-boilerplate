@@ -6,7 +6,7 @@ import GLTFModels from "./classes/models/GLTFModels";
 import MouseRaycaster from "./classes/events/MouseRaycaster";
 import NetworkPlayerController from "./classes/character/controller/NetworkPlayerController";
 import UserInterface from "./classes/ui/UserInterface";
-import { CreateARoom } from "./modules/createRoom";
+//import { CreateARoom } from "./modules/createRoom";
 import { Clock } from "three";
 //udp server modules
 import { geckos } from "@geckos.io/client";
@@ -41,7 +41,7 @@ export default class VirtualClassroom {
     this.ui = new UserInterface(this.channel);
     new MouseRaycaster(this.canvas); // create member later if it needed
     //Create level
-    const Room = CreateARoom();
+    //const Room = CreateARoom();
 
     // window.addEventListener("beforeunload", () => {
     //   // Send an HTTP request to your server to notify it that the tab has been closed
@@ -72,7 +72,14 @@ export default class VirtualClassroom {
       newPlayer.Mesh.position.set(...pos);
       newPlayer.Mesh.quaternion.set(...quat);
       this.canvas.scene.add(newPlayer.Mesh);
-      this.canvas.scene.add(Room); // create level after player initialized
+      //this.canvas.scene.add(Room); // create level after player initialized
+
+      /**GRID helper */
+      const size = 1000;
+      const division = 50;
+      const gridHelper = new THREE.GridHelper(size, division);
+      this.canvas.scene.add(gridHelper);
+
       this.controlledPlayer = newPlayer;
       //User input on/off for chat focus
       this.ui.chatBox.OnFocusInHandler(this.controlledPlayer);
