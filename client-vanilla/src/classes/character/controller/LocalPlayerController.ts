@@ -121,7 +121,7 @@ export default class LocalPlayerController {
       console.log("send request");
       //if transform changed
       this.channel.emit("transform update", {
-        userId: this.userId,
+        id: this.userId,
         pos: [prevPosition.x, prevPosition.y, prevPosition.z],
         quat: [
           player.quaternion.x,
