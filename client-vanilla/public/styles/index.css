@@ -17,6 +17,12 @@ input {
   outline: inherit;
 }
 
+#buttonDiv {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
 #chat-box {
   display: flex;
   position: absolute;

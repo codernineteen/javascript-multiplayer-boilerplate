@@ -1,4 +1,5 @@
 //client modules
+import axios from "axios";
 import * as THREE from "three";
 import Canvas from "./classes/scene/Canvas";
 import Character from "./classes/character/Character";
@@ -9,6 +10,7 @@ import UserInterface from "./classes/ui/UserInterface";
 //import { CreateARoom } from "./modules/createRoom";
 import { Clock } from "three";
 //udp server modules
+// Copyright (c) 2021, Yannick Deubel (https://github.com/yandeu) All rights reserved.
 import { geckos } from "@geckos.io/client";
 import type { ClientChannel } from "@geckos.io/client";
 import type { TransformPacket } from "./types/PlayerType";
@@ -40,27 +42,19 @@ export default class VirtualClassroom {
     this.players = new Map();
     this.ui = new UserInterface(this.channel);
     new MouseRaycaster(this.canvas); // create member later if it needed
-    //Create level
-    //const Room = CreateARoom();
-
-    // window.addEventListener("beforeunload", () => {
-    //   // Send an HTTP request to your server to notify it that the tab has been closed
-    // });
 
     //channel connect
-    let channelId;
     this.channel.onConnect((error) => {
-      //if there is any connection error, stop application
+      //UDP채널 생성에 문제가 있으면 에러 발생
       if (error) {
         console.log("UDP channel connection error: " + error.message);
         return;
       }
-      window.addEventListener("beforeunload", () => {
-        channelId = this.channel.id;
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", "http://127.0.0.1:5555/leave");
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(JSON.stringify({ key: channelId }));
+
+      window.addEventListener("beforeunload", async () => {
+        await axios.post("http://127.0.0.1:5555/leave", {
+          key: this.channel.id,
+        });
       });
     });
 
@@ -74,7 +68,7 @@ export default class VirtualClassroom {
       this.canvas.scene.add(newPlayer.Mesh);
       //this.canvas.scene.add(Room); // create level after player initialized
 
-      /**GRID helper */
+      /** GRID helper */
       const size = 1000;
       const division = 50;
       const gridHelper = new THREE.GridHelper(size, division);
