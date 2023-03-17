@@ -3,6 +3,7 @@
 import geckos, { Data, ServerChannel } from "@geckos.io/server";
 //packages
 import http from "http";
+import awsServerlessExpress from "aws-serverless-express";
 import express from "express";
 import cors, { CorsOptions } from "cors";
 import dotenv from "dotenv";
@@ -36,7 +37,7 @@ const MONGO_URI = process.env.MONGO_URI as string;
 
 //Server instances
 const app = express();
-const server = http.createServer(app);
+const server = awsServerlessExpress.createServer(app);
 const io = geckos({
   cors: { origin: `${process.env.CLIENT_URL}`, allowAuthorization: true },
 });

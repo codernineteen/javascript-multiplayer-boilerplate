@@ -1,0 +1,25 @@
+service: campus-server
+frameworkVersion: "2"
+
+custom:
+  serverless-offline:
+    httpPort: 4000 # 로컬 포트
+    lambdaPort: 4001 # 람다 포트
+
+provider:
+  name: aws
+  runtime: nodejs16.x # 서버 버전
+  lambdaHashingVersion: 20201221
+
+functions:
+  api:
+    handler: handler.index
+
+    #API 경로를 등록해줘야 한다.(해당 API를 통해 API Gateway에 등록며 개발환경에서도 등록해야 된다.)
+    events:
+      - http:
+          path: /api
+          method: get
+
+plugins:
+  - serverless-offline
