@@ -29,6 +29,7 @@
     "jsonwebtoken": "^9.0.0",
     "jwks-rsa": "^3.0.1",
     "mongoose": "^7.0.0",
+    "node-datachannel": "^0.4.1",
     "passport": "^0.6.0",
     "passport-google-oauth20": "^2.0.0",
     "serverless-http": "^3.2.0",
