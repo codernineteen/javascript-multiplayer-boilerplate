@@ -1,10 +1,13 @@
-//packages
+// Copyright (c) 2021, Yannick Deubel (https://github.com/yandeu)
+// All rights reserved.
 import geckos, { Data, ServerChannel } from "@geckos.io/server";
+//packages
 import http from "http";
 import express from "express";
 import cors, { CorsOptions } from "cors";
 import dotenv from "dotenv";
-import cookieSession from "cookie-session";
+import session from "express-session";
+import MongoStore from "connect-mongo";
 //classes
 import Player from "./classes/Player.js";
 //modules
@@ -14,8 +17,16 @@ import { passportSetup } from "./config/passport-setup.js";
 import indexRoute from "./routes/index.js";
 import userRoute from "./routes/user.js";
 import passport from "passport";
+//types
+import type { ConnectMongoOptions } from "connect-mongo/build/main/lib/MongoStore.js";
+declare module "express-session" {
+  export interface SessionData {
+    user: { [key: string]: any };
+    views: number;
+  }
+}
 
-//Global function execution
+//Global function & global variables
 dotenv.config();
 passportSetup(passport);
 
@@ -27,32 +38,39 @@ const MONGO_URI = process.env.MONGO_URI as string;
 const app = express();
 const server = http.createServer(app);
 const io = geckos({
-  cors: { origin: "http://localhost:5173", allowAuthorization: true },
+  cors: { origin: `${process.env.CLIENT_URL}`, allowAuthorization: true },
 });
 const players: Map<string, Player> = new Map();
 
 //Options
-const whiteList = ["http://localhost:5173"];
+const whiteList = [`${process.env.CLIENT_URL}`];
 const corsOptions: CorsOptions = {
   origin: whiteList,
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 };
+const mongoStoreOptions: ConnectMongoOptions = {
+  mongoUrl: process.env.MONGO_URI,
+  ttl: 24 * 60, //test용으로 짧은 시간만 설정
+};
 
 //Middlewares
 app.use(
-  cookieSession({
-    name: "session",
-    keys: ["cyberyechan"],
-    maxAge: 24 * 60 * 60 * 100,
+  session({
+    name: "google-session",
+    secret: process.env.GOOGLE_SECRET as string,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false },
+    store: MongoStore.create(mongoStoreOptions),
   })
 );
-app.use(passport.initialize());
-app.use(passport.session());
-app.use(cors(corsOptions));
+
+app.use(cors(corsOptions)); //지정한 whitelist를 위한 cors 허용
+app.use(express.json()); //json형식 디코딩을 위한 미들웨어
+
 app.use("/", indexRoute);
 app.use("/auth", userRoute);
-app.use(express.json()); //To parser request body
 
 //Game server
 io.addServer(server);
@@ -74,6 +92,7 @@ io.onConnection((channel: ServerChannel) => {
 
 //Application server
 app.post("/leave", (req, res) => {
+  console.log("url : /leave, message : a user left server");
   const clientId = req.body.key;
   const player = players.get(clientId);
   player?.CleanUp();
@@ -92,5 +111,6 @@ const startServer = async () => {
 };
 
 startServer();
+
 // make sure the client uses the same port
 // @geckos.io/client uses the port 9208 by default
