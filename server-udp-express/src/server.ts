@@ -1,6 +1,6 @@
 // Copyright (c) 2021, Yannick Deubel (https://github.com/yandeu)
 // All rights reserved.
-import geckos, { Data, ServerChannel } from "@geckos.io/server";
+import geckos, { Data, ServerChannel, iceServers } from "@geckos.io/server";
 //packages
 import http from "http";
 import awsServerlessExpress from "aws-serverless-express";
@@ -39,8 +39,14 @@ const MONGO_URI = process.env.MONGO_URI as string;
 const app = express();
 const server = awsServerlessExpress.createServer(app);
 const io = geckos({
+  iceServers: process.env.NODE_ENV === "production" ? iceServers : [],
   cors: { origin: `${process.env.CLIENT_URL}`, allowAuthorization: true },
+  portRange: {
+    min: 10000,
+    max: 10007,
+  },
 });
+
 const players: Map<string, Player> = new Map();
 
 //Options
