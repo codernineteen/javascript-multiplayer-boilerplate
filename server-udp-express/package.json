@@ -12,6 +12,9 @@
   "keywords": [],
   "author": "codernineteen",
   "license": "GPL-3.0",
+  "engines": {
+    "node": "15.x"
+  },
   "dependencies": {
     "@geckos.io/client": "^2.3.0",
     "@geckos.io/server": "^2.3.0",
