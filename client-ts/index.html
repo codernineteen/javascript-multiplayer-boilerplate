@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 아래 메타 태그는 localhost에서만 사용 -->
+    <meta name="referrer" content="no-referrer-when-downgrade" />
+    <link rel="stylesheet" href="/styles/index.css" />
+    <!-- need to change title of page according to classroom number -->
+    <title>중앙대학교 가상 강의실</title>
+  </head>
+  <body>
+    <nav>
+      <a class="route" href="/classroom-pannel">강의실 입장</a>
+      <a class="route" id="login-path" href="/"> 구글로 로그인 하기 </a>
+    </nav>
+    <div id="content"></div>
+    <div id="buttonDiv"></div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+      const loginBtn = document.getElementById("buttonDiv");
+      const loginPath = document.getElementById("login-path");
+
+      function handleCredentialResponse(response) {
+        const encoded = response.credential;
+        localStorage.setItem("jwtToken", encoded);
+        loginBtn.hidden = true;
+      }
+
+      function popUpLogin() {
+        google.accounts.id.initialize({
+          client_id:
+            "1069479751075-lv1qokuucjt999m0n46sh5cvhp3lhl5l.apps.googleusercontent.com",
+          callback: handleCredentialResponse,
+        });
+        google.accounts.id.renderButton(
+          document.getElementById("buttonDiv"),
+          { theme: "outline", size: "large" } // customization attributes
+        );
+        google.accounts.id.prompt(); // also display the One Tap dialog
+      }
+
+      loginPath.addEventListener("click", () => {
+        popUpLogin();
+      });
+    </script>
+
+    <script type="module" src="/src/index.ts"></script>
+  </body>
+</html>
