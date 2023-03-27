@@ -1,4 +1,3 @@
-import { SocketType } from "../../../router/Router";
 import Character from "../Character";
 
 export interface KeyInput {
@@ -15,11 +14,7 @@ export default class PlayerInput {
   public keydownHandler: (evt: KeyboardEvent) => void;
   public keyupHandler: (evt: KeyboardEvent) => void;
 
-  constructor(
-    public socket: SocketType,
-    public player: Character,
-    public userId: string
-  ) {
+  constructor(public player: Character) {
     this.keys = {
       Forward: false,
       Left: false,
@@ -71,7 +66,6 @@ export default class PlayerInput {
     switch (evt.code) {
       case "KeyW":
         this.keys.Forward = false;
-        this.StopTransformUpdate();
         break;
 
       case "KeyA":
@@ -80,7 +74,6 @@ export default class PlayerInput {
 
       case "KeyS":
         this.keys.Backward = false;
-        this.StopTransformUpdate();
         break;
 
       case "KeyD":
@@ -105,17 +98,5 @@ export default class PlayerInput {
 
   EnrollKeyDownHandler() {
     document.addEventListener("keydown", this.keydownHandler);
-  }
-
-  StopTransformUpdate() {
-    const playerPos = this.player.Mesh.position;
-    const playerQuat = this.player.Mesh.quaternion;
-    this.socket.emit("TransformUpdate", {
-      userId: this.userId,
-      pos: [playerPos.x, playerPos.y, playerPos.z],
-      quat: [playerQuat.x, playerQuat.y, playerQuat.z, playerQuat.w],
-      state: "idle",
-      input: this.keys,
-    });
   }
 }

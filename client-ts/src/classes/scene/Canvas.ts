@@ -22,10 +22,8 @@ export default class Canvas {
   public effectFXAA: ShaderPass;
 
   constructor() {
-    // canvas
-    const canvas = document.getElementById("app") as HTMLCanvasElement;
-
     // -- configuration
+    const canvas = document.getElementById("app") as HTMLCanvasElement;
     // - renderer & window size
     this.renderer = new THREE.WebGLRenderer({ canvas });
     this.renderer.shadowMap.enabled = true;

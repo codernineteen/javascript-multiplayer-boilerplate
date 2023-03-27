@@ -12,41 +12,23 @@
   </head>
   <body>
     <nav>
-      <a class="route" href="/classroom-pannel">강의실 입장</a>
-      <a class="route" id="login-path" href="/"> 구글로 로그인 하기 </a>
+      <a class="route" href="/">go to main</a>
+      <a class="route" href="/connect">Connect</a>
+      <a class="route" href="/classroom/726">726호</a>
+      <a class="route" href="/classroom/727">727호</a>
+      <button class="rs-get">send request</button>
     </nav>
     <div id="content"></div>
-    <div id="buttonDiv"></div>
 
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script>
-      const loginBtn = document.getElementById("buttonDiv");
-      const loginPath = document.getElementById("login-path");
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script type="module" src="./src/index.ts"></script>
+    <script type="module">
+      import axios from "axios";
 
-      function handleCredentialResponse(response) {
-        const encoded = response.credential;
-        localStorage.setItem("jwtToken", encoded);
-        loginBtn.hidden = true;
-      }
-
-      function popUpLogin() {
-        google.accounts.id.initialize({
-          client_id:
-            "1069479751075-lv1qokuucjt999m0n46sh5cvhp3lhl5l.apps.googleusercontent.com",
-          callback: handleCredentialResponse,
-        });
-        google.accounts.id.renderButton(
-          document.getElementById("buttonDiv"),
-          { theme: "outline", size: "large" } // customization attributes
-        );
-        google.accounts.id.prompt(); // also display the One Tap dialog
-      }
-
-      loginPath.addEventListener("click", () => {
-        popUpLogin();
+      const button = document.querySelector(".rs-get");
+      button.addEventListener("click", () => {
+        axios.get("http://localhost:8080/index");
       });
     </script>
-
-    <script type="module" src="/src/index.ts"></script>
   </body>
 </html>

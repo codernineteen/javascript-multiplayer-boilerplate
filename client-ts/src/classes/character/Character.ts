@@ -2,9 +2,6 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import GLTFModels from "../models/GLTFModels";
 import LocalPlayerController from "./controller/LocalPlayerController";
-import NetworkPlayerController from "./controller/NetworkPlayerController";
-import { SocketType } from "../../router/Router";
-import { KeyInput } from "./inputs/PlayerInput";
 
 interface AnimationObject {
   [animName: string]: {
@@ -18,26 +15,14 @@ export default class Character {
   private bones: any;
   private animMixer: THREE.AnimationMixer;
   private animations: AnimationObject;
-  private controller: LocalPlayerController | NetworkPlayerController;
+  private controller: LocalPlayerController;
 
-  constructor(
-    public socket: SocketType,
-    public userId: string,
-    public isRemote: boolean,
-    public input?: KeyInput
-  ) {
+  constructor() {
     this.group = new THREE.Group();
     this.bones = {};
     this.animMixer = new THREE.AnimationMixer(this.group); // empty actions at this moment
     this.animations = {};
-    this.controller = isRemote
-      ? new NetworkPlayerController(
-          this,
-          this.socket,
-          this.userId,
-          this.input as KeyInput
-        )
-      : new LocalPlayerController(this, this.socket, this.userId); // give 'this' context to state machine
+    this.controller = new LocalPlayerController(this); // give 'this' context to state machine
   }
 
   /**
@@ -46,7 +31,7 @@ export default class Character {
   public LoadModels() {
     const loader = new GLTFLoader();
     loader.load(
-      "models/testCharacter2.glb",
+      "/models/testCharacter2.glb",
       //onLoad
       (gltf) => {
         gltf.scene.scale.setScalar(3);
@@ -77,7 +62,7 @@ export default class Character {
    * @param gltfModel gltfModel taking (path, name, loadCallback) as parameters. load callback becomes a queue and is executed inside of gltfModel instance
    */
   public LoadFromGLTFModels(gltfModel: GLTFModels) {
-    gltfModel.LoadGLTFModel("models/testCharacter2.glb", "ybot", (gltf) => {
+    gltfModel.LoadGLTFModel("../models/testCharacter2.glb", "ybot", (gltf) => {
       const model = gltf.scene;
       model.scale.setScalar(3);
 
