@@ -11,24 +11,23 @@
     <title>중앙대학교 가상 강의실</title>
   </head>
   <body>
+    <div class="state-container">
+      <button class="connect">Connect</button>
+      <p class="connection-state">Disconnected</p>
+    </div>
     <nav>
       <a class="route" href="/">go to main</a>
-      <a class="route" href="/connect">Connect</a>
       <a class="route" href="/classroom/726">726호</a>
       <a class="route" href="/classroom/727">727호</a>
-      <button class="rs-get">send request</button>
     </nav>
     <div id="content"></div>
 
+    <form id="chatform">
+      <input type="text" id="text" />
+      <input type="submit" id="send" />
+    </form>
+
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script type="module" src="./src/index.ts"></script>
-    <script type="module">
-      import axios from "axios";
-
-      const button = document.querySelector(".rs-get");
-      button.addEventListener("click", () => {
-        axios.get("http://localhost:8080/index");
-      });
-    </script>
   </body>
 </html>

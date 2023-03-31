@@ -7,7 +7,6 @@ use std::{
 };
 
 use actix::*;
-use actix_files::{Files, NamedFile};
 use actix_web::{
     middleware::Logger,
     web, App, 
@@ -21,18 +20,16 @@ mod server;
 mod session;
 mod routes;
 
-async fn index() -> impl Responder {
-    NamedFile::open_async("./static/index.html").await.unwrap()
-}
 
 /// Entry point for our websocket route
-async fn chat_route(
+async fn room_route(
     req: HttpRequest,
     stream: web::Payload,
-    srv: web::Data<Addr<server::ChatServer>>,
+    srv: web::Data<Addr<server::RoomServer>>,
 ) -> Result<HttpResponse, Error> {
+    //Start websocket actor
     ws::start(
-        session::WsChatSession {
+        session::WsRoomSession {
             id: 0,
             hb: Instant::now(),
             room: "main".to_owned(),
@@ -52,6 +49,7 @@ async fn get_count(count: web::Data<AtomicUsize>) -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    //use logger for performative logging
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     // set up applications state
@@ -59,24 +57,23 @@ async fn main() -> std::io::Result<()> {
     let app_state = Arc::new(AtomicUsize::new(0));
 
     // start chat server actor
-    let server = server::ChatServer::new(app_state.clone()).start();
+    let server = server::RoomServer::new(app_state.clone()).start(); //RoomServer actor starts -> thread 1
 
     log::info!("starting HTTP server at http://localhost:8080");
 
     HttpServer::new(move || {
-        let cors = Cors::default().allowed_origin("http://localhost:5174");
+        let cors = Cors::default().allowed_origin("http://localhost:5173");
 
         App::new()
             .wrap(Logger::default())
             .wrap(cors)
             .app_data(web::Data::from(app_state.clone()))
             .app_data(web::Data::new(server.clone()))
-            .service(web::resource("/").to(index))
             .route("/count", web::get().to(get_count))
-            .route("/ws", web::get().to(chat_route))
+            .route("/ws", web::get().to(room_route))
             .route("/index", web::get().to(routes::index::index))
     })
-    .workers(2)
+    .workers(2) //workers is corresponed to number of cpu of current machine by default.
     .bind(("127.0.0.1", 8080))?
     .run()
     .await

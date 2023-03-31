@@ -1,3 +1,3 @@
-import Router from "./router/Router";
+import Router from "./classes/router/Router";
 
 new Router();
