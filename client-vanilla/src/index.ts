@@ -8,7 +8,6 @@ const socket = io("http://localhost:3333", {
   transports: ["websocket"],
 });
 let peer = new Peer(socket);
-let dataChannel;
 let runtime;
 
 //HTML element
