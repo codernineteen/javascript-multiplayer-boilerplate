@@ -17,6 +17,7 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
     });
     const payload = ticket.getPayload();
     req.user = payload;
+    console.log("valid user");
     next();
   } catch (err) {
     res.status(401).json({ error: "Unauthorized" });

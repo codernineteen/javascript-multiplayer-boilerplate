@@ -3,17 +3,13 @@
 import geckos, { Data, ServerChannel, iceServers } from "@geckos.io/server";
 //packages
 import http from "http";
-import awsServerlessExpress from "aws-serverless-express";
 import express from "express";
 import cors, { CorsOptions } from "cors";
 import dotenv from "dotenv";
-import session from "express-session";
-import MongoStore from "connect-mongo";
 //classes
 import Player from "./classes/Player.js";
 //modules
 import { connectDB } from "./db/connectMongo.js";
-import { passportSetup } from "./config/passport-setup.js";
 //instances
 import indexRoute from "./routes/index.js";
 import userRoute from "./routes/user.js";
@@ -29,7 +25,6 @@ declare module "express-session" {
 
 //Global function & global variables
 dotenv.config();
-passportSetup(passport);
 
 //Environment variables
 const PORT = process.env.PORT;
@@ -37,7 +32,7 @@ const MONGO_URI = process.env.MONGO_URI as string;
 
 //Server instances
 const app = express();
-const server = awsServerlessExpress.createServer(app);
+const server = http.createServer(app);
 const io = geckos({
   iceServers: process.env.NODE_ENV === "production" ? iceServers : [],
   cors: { origin: `${process.env.CLIENT_URL}`, allowAuthorization: true },
@@ -56,23 +51,8 @@ const corsOptions: CorsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 };
-const mongoStoreOptions: ConnectMongoOptions = {
-  mongoUrl: process.env.MONGO_URI,
-  ttl: 24 * 60, //test용으로 짧은 시간만 설정
-};
 
 //Middlewares
-app.use(
-  session({
-    name: "google-session",
-    secret: process.env.GOOGLE_SECRET as string,
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false },
-    store: MongoStore.create(mongoStoreOptions),
-  })
-);
-
 app.use(cors(corsOptions)); //지정한 whitelist를 위한 cors 허용
 app.use(express.json()); //json형식 디코딩을 위한 미들웨어
 
