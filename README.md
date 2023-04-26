@@ -5,7 +5,8 @@ Because i will rewrite all codes into rust or other languages, I decided to reve
 
 Maybe the contents of branch is not stable because i was working on it, but you can still overview the architecture i used and the logic of implementations.
 
-Client side implementation : Vanilla Typescript with OOP + three.js library
+Client side implementation : Vanilla Typescript with OOP architecture+ three.js library
+<br>
 Server side implementation : socket.io version / geckos.io version / rust actix server version(this only supports socket connection, no synchronization)
 
-Further details for each implementatin, check out branch and read source code!
+For further details of each implementatin, check out branch and read source code!
